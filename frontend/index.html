@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel Remoto Direto - Casa</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --accent: #3b82f6;
+            --accent-hover: #2563eb;
+            --text: #f8fafc;
+            --text-secondary: #94a3b8;
+            --success: #22c55e;
+            --danger: #ef4444;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container {
+            width: 100%;
+            max-width: 600px;
+            background: var(--card-bg);
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.5);
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+            text-align: center;
+        }
+        .subtitle {
+            color: var(--text-secondary);
+            font-size: 14px;
+            text-align: center;
+            margin-bottom: 24px;
+        }
+        .config-box {
+            background: rgba(0,0,0,0.2);
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+        .config-box label {
+            display: block;
+            font-size: 12px;
+            color: var(--text-secondary);
+            margin-bottom: 5px;
+        }
+        .config-box input {
+            width: 100%;
+            padding: 8px 12px;
+            background: #0f172a;
+            border: 1px solid #334155;
+            color: white;
+            border-radius: 6px;
+            box-sizing: border-box;
+            font-size: 14px;
+        }
+        .grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 20px;
+        }
+        button.action-btn {
+            background: var(--accent);
+            color: white;
+            border: none;
+            padding: 15px;
+            font-size: 16px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.2s, transform 0.1s;
+        }
+        button.action-btn:hover {
+            background: var(--accent-hover);
+        }
+        button.action-btn:active {
+            transform: scale(0.98);
+        }
+        .status-card {
+            background: rgba(0,0,0,0.3);
+            padding: 15px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 13px;
+            color: #38bdf8;
+            min-height: 40px;
+            max-height: 120px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Painel Remoto Direto</h1>
+        <div class="subtitle">Conectado diretamente ao seu PC de casa</div>
+        
+        <div class="config-box">
+            <label for="tunnelUrl">URL do Servidor / Túnel do seu PC de casa:</label>
+            <input type="text" id="tunnelUrl" placeholder="https://xxxx.loca.lt ou http://seu-ip:porta">
+        </div>
+
+        <div class="grid">
+            <button class="action-btn" onclick="sendAction('next_slide')">Próximo Slide</button>
+            <button class="action-btn" onclick="sendAction('prev_slide')">Slide Anterior</button>
+            <button class="action-btn" onclick="sendAction('media_play_pause')">Play / Pause Mídia</button>
+            <button class="action-btn" onclick="sendAction('take_screenshot')">Tirar Print Tela</button>
+        </div>
+
+        <div class="status-card" id="status">Status: Aguardando conexão...</div>
+    </div>
+
+    <script>
+        // Carrega URL salva no navegador
+        document.getElementById('tunnelUrl').value = localStorage.getItem('tunnel_url') || '';
+
+        async function sendAction(actionName) {
+            let url = document.getElementById('tunnelUrl').value.trim();
+            const statusDiv = document.getElementById('status');
+
+            if (!url) {
+                alert('Por favor, informe a URL do túnel do seu PC de casa.');
+                return;
+            }
+
+            // Remove barra no final se houver
+            if (url.endsWith('/')) {
+                url = url.slice(0, -1);
+            }
+
+            localStorage.setItem('tunnel_url', url);
+            statusDiv.innerText = `Enviando comando '${actionName}' para ${url}...`;
+
+            try {
+                const response = await fetch(`${url}/command`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ action: actionName })
+                });
+
+                if (response.ok) {
+                    const result = await response.json();
+                    statusDiv.innerText = `Sucesso! Resposta do PC: ${result.message || 'Comando executado'}`;
+                } else {
+                    statusDiv.innerText = `Erro HTTP: ${response.status} (Verifique se o CORS está ativo no servidor)`;
+                }
+            } catch (error) {
+                statusDiv.innerText = `Erro de conexão: ${error.message}. (Verifique se o túnel está ativo)`;
+            }
+        }
+    </script>
+</body>
+</html>
